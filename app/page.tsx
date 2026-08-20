@@ -1,3 +1,5 @@
+import { DEPLOY_MARKER } from "./deploy-marker";
+
 const CLUBS = [
   { slug: "arsenal", name: "Arsenal" },
   { slug: "aston-villa", name: "Aston Villa" },
@@ -55,6 +57,15 @@ export default function Home() {
           >
             Enter Store →
           </a>
+
+          {/* What is actually running. Rendered on the server, so a stale
+              browser cache cannot show yesterday's marker on today's pod. */}
+          <p
+            data-testid="deploy-marker"
+            className="mt-6 font-mono text-[11px] tracking-tight text-slate-400"
+          >
+            {DEPLOY_MARKER}
+          </p>
         </div>
       </div>
     </main>
