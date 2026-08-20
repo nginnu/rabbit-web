@@ -36,3 +36,6 @@ coverage/
 .cache
 .parcel-cache
 .turbo
+
+# tsc --noEmit writes this incremental cache even with no output
+tsconfig.tsbuildinfo

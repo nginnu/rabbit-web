@@ -1,0 +1,227 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  NODE_VERSION: "20"
+  GITLEAKS_VERSION: "8.30.1"
+  TRUFFLEHOG_VERSION: "3.97.0"
+  TRIVY_VERSION: "0.74.0"
+  SEMGREP_VERSION: "1.173.0"
+
+jobs:
+  guardrails:
+    name: guardrails · secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+      - run: gitleaks git . --report-format sarif --report-path gitleaks.sarif --redact --exit-code 1
+      - name: install trufflehog
+        if: always()
+        run: |
+          curl -sSfL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin trufflehog
+      - name: trufflehog · verified only
+        if: always()
+        run: |
+          trufflehog git file://. --only-verified --fail --json > trufflehog.json || status=$?
+          cat trufflehog.json
+          exit "${status:-0}"
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guardrails-reports
+          path: |
+            gitleaks.sarif
+            trufflehog.json
+          retention-days: 14
+
+  # There is no unit test suite in this repo yet — package.json has dev, build,
+  # start and lint and nothing else. What this job proves is that the app
+  # type-checks under strict and compiles; it does not prove any behaviour. A
+  # green run here is not the same claim the Go side's `go test` makes.
+  build:
+    name: build · typecheck + next build
+    needs: guardrails
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # npm ci, not npm install: install rewrites package-lock.json when the
+      # tree drifts, so CI would build a dependency set nobody committed.
+      - run: npm ci
+
+      # `npm run lint` is not called here. next lint with no eslint config in
+      # the repo prompts for one interactively, and a prompt on a runner is a
+      # job that hangs until the six-hour timeout. Restore this step in the same
+      # change that adds an .eslintrc.
+      #
+      # tsconfig has strict: true, so this is a real check and not a formality.
+      # --noEmit because next build does the emitting.
+      - name: typecheck
+        run: npx tsc --noEmit
+
+      - run: npm run build
+
+      - name: build output size
+        run: |
+          {
+            echo "### next build"
+            echo '```'
+            du -sh .next
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  sast:
+    name: sast · semgrep
+    needs: guardrails
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet "semgrep==${SEMGREP_VERSION#v}"
+      # p/typescript and p/react cover the BFF routes under app/api, which is
+      # where this app talks to the services and handles the session cookie.
+      - run: semgrep --config p/typescript --config p/react --config p/ci --sarif --output semgrep.sarif --error
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  sca:
+    name: sca · trivy fs
+    needs: guardrails
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: install trivy
+        run: |
+          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xz -C /usr/local/bin trivy
+      - name: trivy fs
+        run: |
+          trivy fs . \
+            --scanners vuln,secret,license \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format sarif \
+            --output trivy-fs.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  licensed-scanners-available:
+    name: licensed scanners · availability
+    needs: guardrails
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      sonar: ${{ steps.check.outputs.sonar }}
+      snyk: ${{ steps.check.outputs.snyk }}
+    steps:
+      - id: check
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "sonar=${SONAR_TOKEN:+true}" >> "$GITHUB_OUTPUT"
+          echo "snyk=${SNYK_TOKEN:+true}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### licensed scanners"
+            echo "| scanner | token | status |"
+            echo "|---|---|---|"
+            echo "| SonarQube | SONAR_TOKEN | ${SONAR_TOKEN:+configured}${SONAR_TOKEN:-absent — skipped} |"
+            echo "| Snyk | SNYK_TOKEN | ${SNYK_TOKEN:+configured}${SNYK_TOKEN:-absent — skipped} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  sonarqube:
+    name: sast · sonarqube
+    needs: [build, licensed-scanners-available]
+    if: needs.licensed-scanners-available.outputs.sonar == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+  snyk:
+    name: sca · snyk
+    needs: [guardrails, licensed-scanners-available]
+    if: needs.licensed-scanners-available.outputs.snyk == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --sarif-file-output=snyk.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+          category: snyk
+
+  gate:
+    name: ci gate
+    needs: [guardrails, build, sast, sca]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}'
+          if echo '${{ toJSON(needs) }}' | grep -q '"result": *"\(failure\|cancelled\)"'; then
+            echo "::error::one or more ci jobs failed"
+            exit 1
+          fi
