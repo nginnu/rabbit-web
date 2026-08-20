@@ -330,11 +330,15 @@ jobs:
         run: |
           git config user.name "rabbit-ci"
           git config user.email "ci@rabbit.invalid"
-          if git diff --quiet; then
+          # Stage first, compare after. values-ci.yaml does not exist in the
+          # gitops repo until the first promote writes it, and `git diff` on an
+          # untracked file reports no change — the job then said "nothing to
+          # promote" and exited 0 on the run that was supposed to create it.
+          git add "charts/${SERVICE}/values-ci.yaml"
+          if git diff --cached --quiet; then
             echo "tag unchanged — nothing to promote"
             exit 0
           fi
-          git add "charts/${SERVICE}/values-ci.yaml"
           git commit -m "chore(images): web ${GITHUB_SHA::7}"
           for attempt in 1 2 3; do
             if git push; then exit 0; fi
