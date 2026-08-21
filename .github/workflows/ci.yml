@@ -320,7 +320,7 @@ jobs:
             "  ${SERVICE}:" \
             "    image:" \
             "      repository: ${REGISTRY_NS}/rabbit-${SERVICE}" \
-            "      tag: ${TAG}" \
+            "      tag: \"${TAG}\"" \
             "      pullPolicy: IfNotPresent" \
             > "${chart}/values-ci.yaml"
           git -C gitops diff --stat
