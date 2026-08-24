@@ -16,6 +16,7 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
 ]);
 
 export const TOKEN_COOKIE = "token";
+export const ROLE_COOKIE = "role";
 
 export function bearerFrom(request: Request): string | null {
   const header = request.headers.get("authorization");

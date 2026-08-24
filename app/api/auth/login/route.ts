@@ -1,4 +1,10 @@
-import { authUrl, proxy, TOKEN_COOKIE } from "@/lib/bff";
+import {
+  authUrl,
+  decodeJwt,
+  proxy,
+  ROLE_COOKIE,
+  TOKEN_COOKIE,
+} from "@/lib/bff";
 
 export async function POST(request: Request) {
   const res = await proxy(request, authUrl("/auth/login"));
@@ -18,19 +24,29 @@ export async function POST(request: Request) {
 
   const headers = new Headers(res.headers);
   if (token) {
-    const parts = [
-      `${TOKEN_COOKIE}=${token}`,
-      "Path=/",
-      "HttpOnly",
-      "Secure",
-      "SameSite=Lax",
-    ];
     const expires = expiresAt ? Date.parse(expiresAt) : NaN;
-    if (!Number.isNaN(expires)) {
-      const maxAge = Math.max(0, Math.floor((expires - Date.now()) / 1000));
-      parts.push(`Max-Age=${maxAge}`);
+    const maxAge = Number.isNaN(expires)
+      ? null
+      : Math.max(0, Math.floor((expires - Date.now()) / 1000));
+
+    const cookie = (name: string, value: string) => {
+      const parts = [
+        `${name}=${value}`,
+        "Path=/",
+        "HttpOnly",
+        "Secure",
+        "SameSite=Lax",
+      ];
+      if (maxAge !== null) parts.push(`Max-Age=${maxAge}`);
+      return parts.join("; ");
+    };
+
+    headers.append("Set-Cookie", cookie(TOKEN_COOKIE, token));
+
+    const role = decodeJwt(token)?.rol;
+    if (typeof role === "string" && role) {
+      headers.append("Set-Cookie", cookie(ROLE_COOKIE, role));
     }
-    headers.append("Set-Cookie", parts.join("; "));
   }
 
   return new Response(body, { status: res.status, headers });
