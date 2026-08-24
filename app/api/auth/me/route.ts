@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   return Response.json({
     user_id: claims.uid,
     username: typeof claims.usr === "string" ? claims.usr : null,
+    role: typeof claims.rol === "string" ? claims.rol : null,
     session_id: typeof claims.sid === "string" ? claims.sid : null,
     expires_at:
       typeof claims.exp === "number"

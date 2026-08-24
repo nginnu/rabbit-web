@@ -79,6 +79,7 @@ export async function login(username: string, password: string) {
 export interface Me {
   user_id: number;
   username: string | null;
+  role: string | null;
   session_id: string | null;
   expires_at: string | null;
 }
