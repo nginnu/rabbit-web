@@ -1,10 +1,10 @@
 export const VERSION_TINT = [
-  { dot: "bg-sky-500", text: "text-sky-700", border: "border-b-sky-500", wash: "bg-sky-50/70" },
-  { dot: "bg-amber-500", text: "text-amber-700", border: "border-b-amber-500", wash: "bg-amber-50/70" },
-  { dot: "bg-emerald-500", text: "text-emerald-700", border: "border-b-emerald-500", wash: "bg-emerald-50/70" },
-  { dot: "bg-fuchsia-500", text: "text-fuchsia-700", border: "border-b-fuchsia-500", wash: "bg-fuchsia-50/70" },
-  { dot: "bg-indigo-500", text: "text-indigo-700", border: "border-b-indigo-500", wash: "bg-indigo-50/70" },
-  { dot: "bg-rose-500", text: "text-rose-700", border: "border-b-rose-500", wash: "bg-rose-50/70" },
+  { dot: "bg-sky-500", text: "text-sky-700", border: "border-b-sky-500", wash: "bg-sky-50/70", solid: "bg-sky-600" },
+  { dot: "bg-amber-500", text: "text-amber-700", border: "border-b-amber-500", wash: "bg-amber-50/70", solid: "bg-amber-600" },
+  { dot: "bg-emerald-500", text: "text-emerald-700", border: "border-b-emerald-500", wash: "bg-emerald-50/70", solid: "bg-emerald-600" },
+  { dot: "bg-fuchsia-500", text: "text-fuchsia-700", border: "border-b-fuchsia-500", wash: "bg-fuchsia-50/70", solid: "bg-fuchsia-600" },
+  { dot: "bg-indigo-500", text: "text-indigo-700", border: "border-b-indigo-500", wash: "bg-indigo-50/70", solid: "bg-indigo-600" },
+  { dot: "bg-rose-500", text: "text-rose-700", border: "border-b-rose-500", wash: "bg-rose-50/70", solid: "bg-rose-600" },
 ];
 
 export function tintAt(index: number) {

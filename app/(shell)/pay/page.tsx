@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import type { Me } from "@/lib/api";
 import TraceBadge from "@/components/TraceBadge";
+import IdentityBadge from "@/components/IdentityBadge";
 
 // Labels + copy for the four methods payment-svc accepts. "cod" carries a
 // `failsAlways` flag so the form can call out that its failure is the
@@ -93,7 +94,9 @@ function PayForm() {
   };
 
   return (
-    <div className="grid md:grid-cols-5 gap-6">
+    <div className="space-y-6">
+      <IdentityBadge />
+      <div className="grid md:grid-cols-5 gap-6">
       {/* Summary / context */}
       <div className="md:col-span-2 space-y-4">
         <div className="glass p-6">
@@ -300,6 +303,7 @@ function PayForm() {
             </pre>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

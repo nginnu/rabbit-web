@@ -4,22 +4,35 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { me } from "@/lib/api";
 import { splitMarker, tintAt } from "@/lib/version";
+import { DEPLOY_MARKER, DEPLOY_TINT } from "@/app/deploy-marker";
 
-const ROLE_COLOR: Record<string, string> = {
-  admin: "text-rose-700",
-  qa: "text-violet-700",
-  member: "text-teal-700",
-};
+const GIT_SHA = process.env.NEXT_PUBLIC_GIT_SHA || "dev";
 
-export default function IdentityBadge({
-  sha,
-  marker,
-  tintIndex,
+function Field({
+  label,
+  children,
+  testId,
 }: {
-  sha: string;
-  marker: string;
-  tintIndex: number;
+  label: string;
+  children: React.ReactNode;
+  testId?: string;
 }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
+        {label}
+      </span>
+      <span
+        data-testid={testId}
+        className="font-mono text-4xl font-bold leading-none tracking-tight text-white"
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
+export default function IdentityBadge() {
   const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -36,68 +49,37 @@ export default function IdentityBadge({
     });
   }, [pathname]);
 
-  const tint = tintAt(tintIndex);
-  const when = splitMarker(marker);
+  const tint = tintAt(DEPLOY_TINT);
+  const when = splitMarker(DEPLOY_MARKER);
 
   return (
     <div
       data-testid="identity-badge"
-      className="inline-flex items-stretch overflow-hidden rounded-2xl border-[1.5px] border-slate-300 bg-white/90 backdrop-blur whitespace-nowrap"
+      title={DEPLOY_MARKER}
+      className={`flex w-full flex-wrap items-center gap-x-16 gap-y-6 rounded-2xl px-9 py-7 shadow-glass-sm ${tint.solid}`}
     >
-      {username && (
-        <div className="flex flex-col justify-center gap-1 px-5 py-2.5">
-          <span className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">
-            user
-          </span>
-          <span
-            data-testid="badge-user"
-            className="font-mono text-lg font-semibold leading-none text-slate-800"
-          >
-            {username}
-          </span>
-        </div>
-      )}
+      <Field label="user" testId="badge-user">
+        {username ?? "—"}
+      </Field>
 
-      {role && (
-        <div className="flex flex-col justify-center gap-1 border-l border-slate-200 px-5 py-2.5">
-          <span className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">
-            role
-          </span>
-          <span
-            data-testid="badge-role"
-            className={`font-mono text-lg font-semibold uppercase leading-none tracking-wide ${
-              ROLE_COLOR[role] ?? "text-slate-600"
-            }`}
-          >
-            {role}
-          </span>
-        </div>
-      )}
+      <Field label="role" testId="badge-role">
+        {role ? role.toUpperCase() : "—"}
+      </Field>
 
-      <div
-        title={marker}
-        className="flex flex-col justify-center gap-1 border-l border-slate-200 bg-slate-50/80 px-5 py-2.5"
-      >
-        <span className="font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">
-          version
-        </span>
-        <span className="flex items-center gap-2.5 font-mono text-lg font-semibold leading-none">
-          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tint.dot}`} />
-          <span data-testid="badge-version" className={tint.text}>
-            {sha}
-          </span>
-          <span className="flex flex-col items-end gap-0.5 leading-none">
-            {when.date && (
-              <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                {when.date}
-              </span>
-            )}
-            <span className="text-sm font-medium text-slate-500">
-              {when.time}
+      <Field label="version" testId="badge-version">
+        {GIT_SHA}
+      </Field>
+
+      <Field label="deployed">
+        <span className="flex items-baseline gap-2">
+          {when.date && (
+            <span className="text-2xl font-semibold text-white/70">
+              {when.date}
             </span>
-          </span>
+          )}
+          {when.time}
         </span>
-      </div>
+      </Field>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import type { Me } from "@/lib/api";
 import TraceBadge from "@/components/TraceBadge";
+import IdentityBadge from "@/components/IdentityBadge";
 import JerseyArt from "@/components/JerseyArt";
 
 // Soft background tints per club — pairs with JerseyArt colours.
@@ -160,25 +161,23 @@ export default function OrdersPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-10">
       {/* Hero */}
-      <section className="glass p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
-            ⚡ Fresh drop · 2024/25
+      <section className="glass p-6 md:p-8 flex flex-col gap-5">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-sky-100/80 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
+              ⚡ Fresh drop · 2024/25
+            </div>
+            <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-800">
+              Premier League <span className="text-sky-600">Jerseys</span>
+            </h2>
           </div>
-          <h2 className="mt-3 text-3xl md:text-4xl font-bold tracking-tight text-slate-800">
-            Premier League <span className="text-sky-600">Jerseys</span>
-          </h2>
-          <p className="mt-2 text-sm text-slate-600 max-w-xl">
-            {loggedIn
-              ? "Official home kits for the 2024/25 season. Tap “Buy” to create an order — you'll head straight to secure checkout."
-              : "Official home kits for the 2024/25 season. Sign in to buy — browsing the catalog is open to everyone."}
-          </p>
+          <TraceBadge
+            traceId={traceId}
+            userId={meInfo?.user_id ?? null}
+            sessionId={meInfo?.session_id ?? null}
+          />
         </div>
-        <TraceBadge
-          traceId={traceId}
-          userId={meInfo?.user_id ?? null}
-          sessionId={meInfo?.session_id ?? null}
-        />
+        <IdentityBadge />
       </section>
 
       {buyError && (

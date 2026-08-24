@@ -1,20 +1,18 @@
 import Nav from "@/components/Nav";
-import IdentityBadge from "@/components/IdentityBadge";
 import { tintAt } from "@/lib/version";
-import { DEPLOY_MARKER, DEPLOY_TINT } from "../deploy-marker";
+import { DEPLOY_TINT } from "../deploy-marker";
 
 export default function ShellLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const sha = process.env.GIT_SHA || "dev";
   const tint = tintAt(DEPLOY_TINT);
 
   return (
     <div className="min-h-screen px-5 py-5 md:px-10 md:py-8">
       <header
-        className={`mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-6 rounded-2xl border-b-[3px] px-4 py-3 animate-fade-in ${tint.border} ${tint.wash}`}
+        className={`mb-6 flex items-center justify-between gap-6 rounded-2xl border-b-[3px] px-4 py-3 animate-fade-in ${tint.border} ${tint.wash}`}
       >
         <a href="/" className="flex items-center gap-3 group">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-glass-sm transition group-hover:scale-105">
@@ -34,11 +32,7 @@ export default function ShellLayout({
           </span>
         </a>
 
-        <IdentityBadge sha={sha} marker={DEPLOY_MARKER} tintIndex={DEPLOY_TINT} />
-
-        <div className="flex justify-end">
-          <Nav />
-        </div>
+        <Nav />
       </header>
 
       <main className="animate-fade-in">{children}</main>
