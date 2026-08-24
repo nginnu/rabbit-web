@@ -4,3 +4,4 @@
 // against JSX breaks the moment the markup is reformatted, and a broken home
 // page looks exactly like a broken deploy.
 export const DEPLOY_MARKER = "2026-08-23 00:50:08 +0700 · ce66d474";
+export const DEPLOY_TINT = 0;

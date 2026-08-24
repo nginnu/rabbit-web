@@ -55,9 +55,12 @@ fi
 # early and the build fails on a syntax error nobody typed.
 escaped="$(printf '%s' "$text" | sed 's/[\\"]/\\&/g')"
 
-python3 - "$marker_file" "$escaped" <<'PY'
+TINT_COUNT=6
+
+python3 - "$marker_file" "$escaped" "$TINT_COUNT" <<'PY'
 import pathlib, re, sys
 path, value = pathlib.Path(sys.argv[1]), sys.argv[2]
+tint_count = int(sys.argv[3])
 src = path.read_text()
 new, n = re.subn(
     r'(export const DEPLOY_MARKER = ").*(";)',
@@ -69,7 +72,22 @@ new, n = re.subn(
 # that never moved.
 if n != 1:
     sys.exit(f"DEPLOY_MARKER not found in {path} — {n} matches")
+
+current = re.search(r'export const DEPLOY_TINT = (\d+);', src)
+if current is None:
+    sys.exit(f"DEPLOY_TINT not found in {path}")
+nxt = (int(current.group(1)) + 1) % tint_count
+
+new, n = re.subn(
+    r'(export const DEPLOY_TINT = )\d+(;)',
+    lambda m: m.group(1) + str(nxt) + m.group(2),
+    new,
+)
+if n != 1:
+    sys.exit(f"DEPLOY_TINT not rewritten in {path} — {n} matches")
+
 path.write_text(new)
+print(f"tint: {current.group(1)} -> {nxt}", file=sys.stderr)
 PY
 
 echo "marker: $text"
