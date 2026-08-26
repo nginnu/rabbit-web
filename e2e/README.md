@@ -7,8 +7,30 @@ payment), split by outcome:
 e2e/
   happy/all-success.spec.ts     # everything succeeds: card payment → paid
   failed/fail-paid-cod.spec.ts  # COD is declined (402) → pending → retry with card → paid
+  flows/all-users.spec.ts       # 11 users × full journey, screenshots → custom report
+  data/users.ts                 # the 11-user matrix (user_001–005 qa · bob/alice admin · 033–066 member)
+  reporters/flow-reporter.ts    # distills a flows run into e2e/report/flow-report.json
+  report/build-report.mjs       # renders that JSON → e2e-report/index.html (single file)
   support/helpers.ts            # login / buy / submit-payment / order-row helpers
 ```
+
+## Canary flow report (11 users)
+
+`npm run test:e2e:canary` walks the shopper journey — landing → login →
+shop → buy → checkout → card → **payment result** (the flow ends on that
+page) — once per user in `data/users.ts`, five screenshots per user, then
+builds `e2e-report/index.html`: one card per user with a prominent role
+badge, per-step pass pills, and the five screenshots inline in a single
+filmstrip (click any screenshot to zoom). All images are base64-embedded,
+so the single file opens offline anywhere.
+
+The deploy marker each landing page served is still captured per user in
+`e2e/report/flow-report.json` (useful when analyzing a run), it is just
+not rendered in the report.
+
+Role labels are not decorative either — every test asserts the role
+returned by `/api/auth/me` against the matrix, so a mislabeled user
+fails the run instead of the report.
 
 The two flows are deterministic by design — `card` always succeeds and
 `cod` is always declined by the mock gateway — so no sleeps or retries
@@ -41,6 +63,7 @@ AUTH_URL=... CATALOG_URL=... ORDER_URL=... npm run dev
 ```bash
 npm run test:e2e         # against https://localhost (kind cluster)
 npm run test:e2e:local   # against http://localhost:3000 (npm run dev)
+npm run test:e2e:canary  # 11-user canary flow run → custom report → opens it
 npm run test:e2e:report  # open the HTML report from the last run
 ```
 

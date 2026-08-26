@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test:e2e": "playwright test",
     "test:e2e:local": "BASE_URL=http://localhost:3000 playwright test",
+    "test:e2e:canary": "playwright test e2e/flows --reporter=./e2e/reporters/flow-reporter.ts && node e2e/report/build-report.mjs && open e2e-report/index.html",
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
